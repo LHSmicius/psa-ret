@@ -1,5 +1,5 @@
 use log::{debug, warn};
-use std::fs;
+use std::{fmt, fs};
 use yaml_rust2::{Yaml, YamlLoader};
 
 #[derive(Debug, Clone, Default)]
@@ -28,11 +28,45 @@ pub struct Signal {
 #[derive(Debug, Clone, Default)]
 pub enum BusType {
     CAN,
-    // VAN,
-    // KLINE,
-    ERROR,
+    VAN,
+    Kline,
+    Error,
     #[default]
     NA,
+}
+
+impl fmt::Display for BusType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            BusType::CAN => write!(f, "CAN"),
+            BusType::VAN => write!(f, "VAN"),
+            BusType::Kline => write!(f, "K-L"),
+            BusType::Error => write!(f, "Err"),
+            BusType::NA => write!(f, "N/A"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub enum Periodicity {
+    Ms(i64),
+    Trigger,
+    TriggerOrMs(i64),
+    Error,
+    #[default]
+    NA,
+}
+
+impl fmt::Display for Periodicity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Periodicity::Ms(ms) => write!(f, "{: >4}ms", ms),
+            Periodicity::Trigger => write!(f, " Trig "),
+            Periodicity::TriggerOrMs(ms) => write!(f, "T{: >5}", ms),
+            Periodicity::Error => write!(f, "Error "),
+            Periodicity::NA => write!(f, "N/A   "),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -43,7 +77,7 @@ pub struct CanMessage {
     pub length: Option<i64>,
     pub comment: Option<Translation>,
     pub bus_type: BusType,
-    pub periodicity: Option<i64>,
+    pub periodicity: Periodicity,
     pub senders: Vec<String>,
     pub receivers: Vec<String>,
     pub signals: Vec<(String, Signal)>,
@@ -248,7 +282,7 @@ impl CanMessage {
             length: None,
             comment: None,
             bus_type: BusType::NA,
-            periodicity: None,
+            periodicity: Periodicity::NA,
             senders: Vec::new(),
             receivers: Vec::new(),
             signals: Vec::new(),
@@ -305,7 +339,7 @@ impl CanMessage {
                                     "can" => BusType::CAN,
                                     _ => {
                                         warn!("Unknown BusType {v}");
-                                        BusType::ERROR
+                                        BusType::Error
                                     }
                                 }
                             } else {
@@ -314,18 +348,19 @@ impl CanMessage {
                         }
                         "periodicity" => {
                             if let Yaml::Integer(number) = value {
-                                message.periodicity = Some(number.clone());
+                                message.periodicity = Periodicity::Ms(*number);
                             } else if let Yaml::String(text) = value {
                                 if text.eq("trigger") {
-                                    message.periodicity = Some(-1);
+                                    message.periodicity = Periodicity::Trigger;
                                 } else if text.ends_with(" ms") {
                                     let number: i64 = text.trim_end_matches(" ms").parse().unwrap();
-                                    message.periodicity = Some(number);
+                                    message.periodicity = Periodicity::Ms(number);
                                 } else if text.ends_with("ms") {
                                     let number: i64 = text.trim_end_matches("ms").parse().unwrap();
-                                    message.periodicity = Some(number);
+                                    message.periodicity = Periodicity::Ms(number);
                                 } else {
                                     warn!("[WARNING] Unable to parse \"periodicity\".");
+                                    message.periodicity = Periodicity::Error;
                                 }
                             } else {
                                 Self::log_warn_wrong_type(k);
