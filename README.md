@@ -1,2 +1,2 @@
-# psa-re-client
-Client for https://github.com/prototux/PSA-RE
+# PSA-RET
+Terminal User Interface (TUI) for https://github.com/prototux/PSA-RE

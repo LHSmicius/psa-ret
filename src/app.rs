@@ -47,7 +47,7 @@ impl App {
                 if let Some(f_ext) = f_path.extension() {
                     if f_ext == "yml" || f_ext == "yaml" {
                         if let Some(file_path_str) = f_path.to_str() {
-                            debug!("PSA-RE-CLIENT opening file {}.", file_path_str);
+                            debug!("PSA-RET opening file {}.", file_path_str);
                             let can_message = can::CanMessage::from_yaml_file(&file_path_str)
                                 .expect("Failed to load CAN message.");
                             self.can_messages.push(can_message);

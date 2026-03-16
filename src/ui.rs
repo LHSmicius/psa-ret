@@ -17,7 +17,7 @@ pub fn ui(frame: &mut Frame, app: &app::App) {
         .style(style::Style::default());
 
     let title = widgets::Paragraph::new(text::Text::styled(
-        "PSA-RAT",
+        "PSA-RET",
         style::Style::default().fg(style::Color::Green),
     ))
     .block(title_block);
