@@ -1,6 +1,7 @@
 use crate::bus::can;
 use crate::config::Config;
 use log::debug;
+use ratatui::widgets;
 use std::fs;
 
 pub enum ActiveScreen {
@@ -18,6 +19,7 @@ pub struct App {
     pub edit_window: Option<EditWindow>,
     pub can_messages: Vec<can::CanMessage>,
     pub app_config: Config,
+    pub table_state: widgets::TableState,
 }
 
 impl App {
@@ -28,12 +30,44 @@ impl App {
             .filter_level(log::LevelFilter::Debug)
             .init();
 
+        let mut table_state = widgets::TableState::default();
+        table_state.select(Some(0));
+
         App {
             active_screen: ActiveScreen::CanBus,
             edit_window: None,
             can_messages: Vec::new(),
             app_config: Config::load_config_file("config.yaml"),
+            table_state,
         }
+    }
+
+    pub fn next_message(&mut self) {
+        let i = match self.table_state.selected() {
+            Some(i) => {
+                if i >= self.can_messages.len() - 1 {
+                    0
+                } else {
+                    i + 1
+                }
+            }
+            None => 0,
+        };
+        self.table_state.select(Some(i));
+    }
+
+    pub fn previous_message(&mut self) {
+        let i = match self.table_state.selected() {
+            Some(i) => {
+                if i == 0 {
+                    self.can_messages.len() - 1
+                } else {
+                    i - 1
+                }
+            }
+            None => 0,
+        };
+        self.table_state.select(Some(i));
     }
 
     pub fn load_can_messages(&mut self) {

@@ -51,7 +51,7 @@ fn run_app<B: prelude::Backend>(
     app: &mut app::App,
 ) -> io::Result<bool> {
     loop {
-        terminal.draw(|f| ui::ui(f, &app))?;
+        terminal.draw(|f| ui::ui(f, app))?;
 
         if let event::Event::Key(key) = event::read()? {
             // dbg!(key.code)
@@ -70,6 +70,12 @@ fn run_app<B: prelude::Backend>(
                     event::KeyCode::Char('e') => {
                         app.edit_window = Some(app::EditWindow::EditCanMsg);
                         app.active_screen = app::ActiveScreen::Editing;
+                    }
+                    event::KeyCode::Up | event::KeyCode::Char('k') => {
+                        app.previous_message();
+                    }
+                    event::KeyCode::Down | event::KeyCode::Char('j') => {
+                        app.next_message();
                     }
                     _ => {}
                 },

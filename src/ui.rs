@@ -2,7 +2,7 @@ use ratatui::{Frame, layout, style, text, widgets};
 
 use crate::app;
 
-pub fn ui(frame: &mut Frame, app: &app::App) {
+pub fn ui(frame: &mut Frame, app: &mut app::App) {
     let chunks = layout::Layout::default()
         .direction(layout::Direction::Vertical)
         .constraints([
@@ -76,7 +76,7 @@ pub fn ui(frame: &mut Frame, app: &app::App) {
     .row_highlight_style(style::Style::default().add_modifier(style::Modifier::REVERSED))
     .column_spacing(1);
 
-    frame.render_widget(table, chunks[1]);
+    frame.render_stateful_widget(table, chunks[1], &mut app.table_state);
 
     let current_keys_hint = {
         match app.active_screen {
