@@ -39,29 +39,44 @@ pub fn ui(frame: &mut Frame, app: &app::App) {
     frame.render_widget(title, header_chunks[0]);
     frame.render_widget(work_dir, header_chunks[1]);
 
-    // Center chunk
-    let mut list_items = Vec::<widgets::ListItem>::new();
+    // Center chunk: Table with dynamic headers and rows
+    let header_cells = ["ID", "Name", "Period", "Len", "Comment", "Bus"]
+        .iter()
+        .map(|h| widgets::Cell::from(*h).style(style::Style::default().fg(style::Color::Cyan)));
+    let header = widgets::Row::new(header_cells)
+        .style(style::Style::default().bg(style::Color::DarkGray))
+        .height(1)
+        .bottom_margin(1);
 
-    for item in &app.can_messages {
-        list_items.push(widgets::ListItem::new(text::Line::from(
-            text::Span::styled(
-                format!(
-                    "{: <10}|{: <30.30}|{: >9}|{: >2}|{: <70.70}|{: <5}|",
-                    item.id.as_deref().unwrap_or(""),
-                    item.name.as_deref().unwrap_or(""),
-                    item.periodicity,
-                    item.length.unwrap_or(-1),
-                    item.comment.as_ref().map(|c| c.get("en")).unwrap_or(""),
-                    item.bus_type,
-                ),
-                style::Style::default().fg(style::Color::Yellow),
-            ),
-        )));
-    }
+    let rows = app.can_messages.iter().map(|item| {
+        widgets::Row::new(vec![
+            widgets::Cell::from(item.id.as_deref().unwrap_or("")),
+            widgets::Cell::from(item.name.as_deref().unwrap_or("")),
+            widgets::Cell::from(item.periodicity.to_string()),
+            widgets::Cell::from(item.length.unwrap_or(0).to_string()),
+            widgets::Cell::from(item.comment.as_ref().map(|c| c.get("en")).unwrap_or("")),
+            widgets::Cell::from(item.bus_type.to_string()),
+        ])
+        .style(style::Style::default().fg(style::Color::Yellow))
+    });
 
-    let list = widgets::List::new(list_items);
+    let table = widgets::Table::new(
+        rows,
+        [
+            layout::Constraint::Length(10),
+            layout::Constraint::Length(30),
+            layout::Constraint::Length(9),
+            layout::Constraint::Length(4),
+            layout::Constraint::Min(10), // Comment takes all remaining space
+            layout::Constraint::Length(5),
+        ],
+    )
+    .header(header)
+    .block(widgets::Block::default().borders(widgets::Borders::ALL).title("CAN Messages"))
+    .row_highlight_style(style::Style::default().add_modifier(style::Modifier::REVERSED))
+    .column_spacing(1);
 
-    frame.render_widget(list, chunks[1]);
+    frame.render_widget(table, chunks[1]);
 
     let current_keys_hint = {
         match app.active_screen {
