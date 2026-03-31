@@ -46,23 +46,12 @@ pub fn ui(frame: &mut Frame, app: &app::App) {
         list_items.push(widgets::ListItem::new(text::Line::from(
             text::Span::styled(
                 format!(
-                    "{: <10}|{: <30}|{: >9}|{: >2}|{: <70}|{: <5}|",
-                    item.id.as_ref().unwrap(),
-                    item.name
-                        .as_ref()
-                        .unwrap()
-                        .chars()
-                        .take(30)
-                        .collect::<String>(),
-                    &item.periodicity,
-                    &item.length.unwrap(),
-                    item.comment
-                        .as_ref()
-                        .map(|c| c.get("en"))
-                        .unwrap_or("")
-                        .chars()
-                        .take(70)
-                        .collect::<String>(),
+                    "{: <10}|{: <30.30}|{: >9}|{: >2}|{: <70.70}|{: <5}|",
+                    item.id.as_deref().unwrap_or(""),
+                    item.name.as_deref().unwrap_or(""),
+                    item.periodicity,
+                    item.length.unwrap_or(-1),
+                    item.comment.as_ref().map(|c| c.get("en")).unwrap_or(""),
                     item.bus_type,
                 ),
                 style::Style::default().fg(style::Color::Yellow),
