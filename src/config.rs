@@ -1,5 +1,6 @@
 use log::{debug, warn};
-use std::{fs, io::Write};
+use std::fs;
+use std::{io::ErrorKind, io::Write};
 use yaml_rust2::{Yaml, YamlEmitter, YamlLoader, yaml};
 
 pub struct Config {
@@ -15,27 +16,47 @@ impl Config {
         }
     }
 
-    fn load_config_str(yaml_str: &str) -> Config {
-        let docs = YamlLoader::load_from_str(yaml_str)
-            .expect("Failed to parse YAML content of configuration file.");
-        let doc = &docs[0];
+    pub fn load_config_file(file_path: &str) -> Config {
+        let mut generate_config_file = false;
+        let config_file = fs::read_to_string(file_path);
+        let config_file = match config_file {
+            Ok(file) => file,
+            Err(error) => match error.kind() {
+                ErrorKind::NotFound => {
+                    debug!("Config file not found. Will create one.");
+                    generate_config_file = true;
+                    String::new()
+                }
+                _ => panic!("Failed to open file: {error:?}"),
+            },
+        };
+        let config = YamlLoader::load_from_str(&config_file);
+        let config = match config {
+            Ok(file) => file,
+            Err(error) => panic!("Failed to parse YAML content of configuration file: {error:?}"),
+        };
 
-        let mut config = Self::generate_default_config();
+        let mut new_config = Self::generate_default_config();
+        if generate_config_file {
+            Self::save_config(file_path, &new_config);
+            return new_config;
+        }
 
-        if let Yaml::Hash(hash) = doc {
+        let config_root = &config[0];
+        if let Yaml::Hash(hash) = config_root {
             for (key, value) in hash {
                 if let Yaml::String(k) = key {
                     match k.as_str() {
                         "database_dir" => {
                             if let Yaml::String(v) = value {
-                                config.database_dir = v.clone();
+                                new_config.database_dir = v.clone();
                             } else {
                                 warn!("[WARNING] Wrong type for \"database_dir\".");
                             }
                         }
                         "default_lang" => {
                             if let Yaml::String(v) = value {
-                                config.default_lang = v.clone();
+                                new_config.default_lang = v.clone();
                             } else {
                                 warn!("[WARNING] Wrong type for \"default_lang\".");
                             }
@@ -47,10 +68,10 @@ impl Config {
                 }
             }
         }
-        config
+        new_config
     }
 
-    fn save_config(file_path: &str, config: Config) -> Config {
+    fn save_config(file_path: &str, config: &Config) {
         let mut hash = yaml::Hash::new();
         hash.insert(
             Yaml::String("database_dir".into()),
@@ -71,21 +92,5 @@ impl Config {
         new_config_file
             .write_all(file_str.as_bytes())
             .expect("Failed to write to file.");
-        config
-    }
-
-    pub fn load_config_file(file_path: &str) -> Config {
-        if fs::exists(file_path).unwrap() {
-            debug!("Loading configuration.");
-            let yaml_content =
-                fs::read_to_string(file_path).expect("Unable to open configuration file.");
-            let config = Self::load_config_str(&yaml_content);
-            config
-        } else {
-            let config = Self::generate_default_config();
-            debug!("Config file not found. Creating default one.");
-            let config = Self::save_config(file_path, config);
-            config
-        }
     }
 }
