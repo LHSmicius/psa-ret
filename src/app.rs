@@ -1,6 +1,6 @@
 use crate::bus::can;
 use crate::config::Config;
-use log::debug;
+use log::{debug, error};
 use ratatui::widgets;
 use std::fs;
 
@@ -82,8 +82,14 @@ impl App {
                     if f_ext == "yml" || f_ext == "yaml" {
                         if let Some(file_path_str) = f_path.to_str() {
                             debug!("PSA-RET opening file {}.", file_path_str);
-                            let can_message = can::CanMessage::from_yaml_file(&file_path_str)
-                                .expect("Failed to load CAN message.");
+                            let can_message = match can::CanMessage::from_yaml_file(&file_path_str)
+                            {
+                                Ok(msg) => msg,
+                                Err(error) => {
+                                    error!("File {file_path_str}: {error}");
+                                    return;
+                                }
+                            };
                             self.can_messages.push(can_message);
                         }
                     }

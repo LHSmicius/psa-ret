@@ -273,9 +273,19 @@ impl CanMessage {
         warn!("[WARNING] Wrong type for message's parameter \"{message_param}\".");
     }
 
-    fn from_yaml_str(yaml_str: &str) -> Result<CanMessage, Box<dyn std::error::Error>> {
-        let docs = YamlLoader::load_from_str(yaml_str)?;
-        let doc = &docs[0];
+    pub fn from_yaml_file(file_path: &str) -> Result<CanMessage, String> {
+        let file_result = fs::read_to_string(file_path);
+        let file = match file_result {
+            Ok(f) => f,
+            Err(_) => return Err(String::from("Can't read file.")),
+        };
+
+        let yaml_tree_result = YamlLoader::load_from_str(&file);
+        let yaml_tree = match yaml_tree_result {
+            Ok(yaml) => yaml,
+            Err(_) => return Err(String::from("Can't parse YAML tree.")),
+        };
+        let yaml_root = &yaml_tree[0];
 
         let mut message = CanMessage {
             id: None,
@@ -291,7 +301,7 @@ impl CanMessage {
         };
 
         debug!("Loading CAN message header.");
-        if let Yaml::Hash(hash) = doc {
+        if let Yaml::Hash(hash) = yaml_root {
             for (key, value) in hash {
                 if let Yaml::String(k) = key {
                     match k.as_str() {
@@ -414,10 +424,5 @@ impl CanMessage {
             }
         }
         Ok(message)
-    }
-
-    pub fn from_yaml_file(file_path: &str) -> Result<CanMessage, Box<dyn std::error::Error>> {
-        let yaml_content = fs::read_to_string(file_path)?;
-        Self::from_yaml_str(&yaml_content)
     }
 }
